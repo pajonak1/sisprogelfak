@@ -51,9 +51,10 @@ namespace PrviProjekat {
         private void SimpleInsert(string request, CacheSlot response)
             => cache.Add(request, lruChain.AddFirst(response));
         
-
-        private Dictionary<string, LinkedListNode<CacheSlot>> cache;
+        // Povezana lista je idealna za LRU jer ima O(1) dodavanje na pocetak, izbacivanje sa kraja, kao i promenu pozicije cvora u listi...
         private LinkedList<CacheSlot> lruChain = new();
+        // ... Jedina mana je O(n) pretraga, pa zato koristimo pomocni Dictionary koji cuva sve cvorove liste radi O(1) (average) pristupa cvorovima
+        private Dictionary<string, LinkedListNode<CacheSlot>> cache;
         private int emptyCount;
     }
 }

@@ -30,12 +30,21 @@ namespace PrviProjekat {
             sourceUnits = new Dictionary<string, Unit> {
                 ["sort"]         = new Unit("o=", "sort=", false),
                 ["lang"]         = new Unit("l=", "lang=", false),
-                ["fields"]       = new Unit("f=", "fields=", false),
                 ["key"]          = new Unit("k=", "key:"),
                 ["title"]        = new Unit("t=", "title:"),
                 ["publisher"]    = new Unit("p=", "publisher:"),
                 ["work_year"]    = new Unit("w=", "first_publish_year:"),
                 ["edition_year"] = new Unit("e=", "publish_year:"),
+                ["fields"]       = new Unit("f=", "fields=", 
+                                            atom => string.Join(',', atom.Split(",")
+                                                                         .Select(field => field.Trim())
+                                                                         .Distinct()
+                                                                         .Order()), 
+                                            (prefix, fields) => prefix + string.Join(',', fields.Split(",")
+                                                                                                .Select(field => field.Trim())
+                                                                                                .Distinct()
+                                                                                                .Order()), 
+                                            false),
                 ["authors"]      = new Unit("a=", "author:", 
                                             unsorted => string.Join(',', unsorted.Split(',')
                                                                                  .Select(value => value.Trim())
