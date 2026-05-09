@@ -57,7 +57,7 @@ namespace PrviProjekat {
                     return true;
                 }
                 catch (Exception e) {
-                    Console.WriteLine(Format(Event.Error, "Caught exception while logging -> " + e.Message));
+                    RawConsoleLine(Format(Event.Error, "Caught exception while logging -> " + e.Message), colorCoding[Event.Error]);
                     return false;
                 }
             }
@@ -71,18 +71,18 @@ namespace PrviProjekat {
         private static string FormatRequest(HttpListenerRequest request, string additionalInformation = "")
             => request.HttpMethod + " " +
                request.Url + " from " +
-               request.RemoteEndPoint.ToString() + (additionalInformation == "" ? "" : " -> ") +
+               request.UserHostName + (additionalInformation == "" ? "" : " -> ") +
                additionalInformation;
 
         private static readonly object _lock = new();
         private const string path = "ServerLog.txt";
         private readonly static Dictionary<Event, ConsoleColor> colorCoding = new() {
-            [Event.Time] = ConsoleColor.Yellow,
-            [Event.Error] = ConsoleColor.Red,
-            [Event.Notify] = ConsoleColor.DarkGray,
-            [Event.Request] = ConsoleColor.Gray,
-            [Event.Synchro] = ConsoleColor.Cyan,
-            [Event.Network] = ConsoleColor.Blue,
+            [Event.Time]     = ConsoleColor.Yellow,
+            [Event.Error]    = ConsoleColor.Red,
+            [Event.Notify]   = ConsoleColor.DarkGray,
+            [Event.Request]  = ConsoleColor.Gray,
+            [Event.Synchro]  = ConsoleColor.Cyan,
+            [Event.Network]  = ConsoleColor.Blue,
             [Event.Critical] = ConsoleColor.DarkRed,
             [Event.Response] = ConsoleColor.Gray,
         };

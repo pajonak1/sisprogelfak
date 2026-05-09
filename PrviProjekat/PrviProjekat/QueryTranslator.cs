@@ -23,7 +23,7 @@ namespace PrviProjekat {
             publisher     - izdavac trazenog naslova (*)
             key           - OpenLibrary API kljuc rada (*)
                   
-        *Visevrednosti upiti nad ovim argumentima (x=<a>&x=<b>&...&x=<c>) se prevode kao solr OR lanac (x:f(<a>) OR x:f(<b>) OR ... OR x:f(<c>))
+        *Visevrednosni http upiti nad ovim argumentima (x=<a>&x=<b>&...&x=<c>) se prevode kao solr OR lanac (x:f(<a>) OR x:f(<b>) OR ... OR x:f(<c>))
      */
     public class QueryTranslator {
         public QueryTranslator() {

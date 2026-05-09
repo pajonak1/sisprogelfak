@@ -35,6 +35,10 @@ namespace PrviProjekat {
             return true;
         }
 
+        // Struktura je implementirana tako da je
+        // odgovornost korisnika strukture da proverava da li se
+        // nesto nalazi u kesu (sa Contains) pre dodavanja ili citanja,
+        // radi izbegavanja eventualnih reduntantnih provera prilikom izvrsenja samih operacija
         public InsertionMethod Add(string request, byte[] body, string contentType)
             => Add(new CacheSlot(request, body, contentType));
 

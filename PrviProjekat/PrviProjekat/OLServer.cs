@@ -173,7 +173,7 @@ namespace PrviProjekat {
                     JsonObject json = JsonNode.Parse(response).AsObject();
                     CacheSlot newEntry;
                     if (json["numFound"].GetValue<int>() == 0) {
-                        newEntry = new CacheSlot(translator.CanonicalSource, new ResponseData("Found 0 results!", 404));
+                        newEntry = new CacheSlot(translator.CanonicalSource, new ResponseData("Found no results!", 404));
                         Logger.Log(Logger.Event.Notify, "The acquired response contains no work data");
                     }
                     else {
@@ -187,8 +187,8 @@ namespace PrviProjekat {
                     lock (_lock) {
                         OLRequest myRequest = requestsToOLAPI[translator.CanonicalSource];
                         lock (myRequest.Lock) {
-                            cache.Add(newEntry);
-                            Logger.Log(Logger.Event.Notify, $"Cached {newEntry.Body.Length}B of data");
+                            LRUCache.InsertionMethod insertionType = cache.Add(newEntry);
+                            Logger.Log(Logger.Event.Notify, $"Cached {newEntry.Body.Length}B of data; operation type: {insertionType}");
                             // Kao sto smo napomenuli, niti "subsciber-i" koje cekaju na pribavljeni request ga citaju iz specijalnog polja strukture OLRequest
                             // Jer u medjuvremenu ne postoji garancija da ce odgovor ostati u cache-u dovoljno dugo da bi ga svaka nit procitala pod velikim opterecenjima
                             myRequest.Response = newEntry.Response;
@@ -197,7 +197,7 @@ namespace PrviProjekat {
                             }
                             else {
                                 Logger.Log(Logger.Event.Synchro, $"Pulsing all threads waiting on {translator.CanonicalSource}");
-                                // pulsiramo samo niti koje cekaju na pribavljeni response
+                                // Pulsiramo samo niti koje cekaju na pribavljeni response
                                 Monitor.PulseAll(myRequest.Lock);
                             }
                             requestsToOLAPI.Remove(translator.CanonicalSource);
