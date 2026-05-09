@@ -58,9 +58,9 @@ namespace PrviProjekat {
             Logger.Log(context.Request, "Request started processing");
             
             bool requestRight = false;
-            bool OLCommunicatoinProtocolComplete = false;
+            bool OLCommunicationProtocolComplete = false;
             string rawUrl = context.Request.RawUrl !;
-            ResponeseData cachedResponse = null !;
+            ResponseData cachedResponse = null !;
             QueryTranslator translator = new();
 
             try {
@@ -171,12 +171,19 @@ namespace PrviProjekat {
                     Logger.EchoLog(Logger.Event.Network, "Response acquired successfully");
                     // response od OpenLibrary API-a, osim trazenih radova, sadrzi i metapodatke koje korisnika ovog servera verovatno ne interesuju
                     JsonObject json = JsonNode.Parse(response).AsObject();
-                    foreach (string field in responseJunk) {
-                        json.Remove(field);
+                    CacheSlot newEntry;
+                    if (json["numFound"].GetValue<int>() == 0) {
+                        newEntry = new CacheSlot(translator.CanonicalSource, new ResponseData("Found 0 results!", 404));
+                        Logger.Log(Logger.Event.Notify, "The acquired response contains no work data");
                     }
-                    response = json.ToJsonString();
-                    Logger.Log(Logger.Event.Notify, "Stripped excess data from the retrieved JSON object");
-                    CacheSlot newEntry = new(translator.CanonicalSource, Encoding.UTF8.GetBytes(response), "application/json; charset=utf-8");
+                    else {
+                        foreach (string field in responseJunk) {
+                            json.Remove(field);
+                        }
+                        response = json.ToJsonString();
+                        Logger.Log(Logger.Event.Notify, "Stripped excess data from the retrieved JSON object");
+                        newEntry = new CacheSlot(translator.CanonicalSource, Encoding.UTF8.GetBytes(response), "application/json; charset=utf-8");
+                    }
                     lock (_lock) {
                         OLRequest myRequest = requestsToOLAPI[translator.CanonicalSource];
                         lock (myRequest.Lock) {
@@ -196,7 +203,7 @@ namespace PrviProjekat {
                             requestsToOLAPI.Remove(translator.CanonicalSource);
                         }
                     }
-                    OLCommunicatoinProtocolComplete = true;
+                    OLCommunicationProtocolComplete = true;
                     Logger.EchoLog(Logger.Event.Response, $"Sending {newEntry.Response.Body.Length}B long response");
                     // "fetcher" salje odgovor nakon upisa u kes, kako bi svaka nit koja ceka mogla sto ranije da inicira komunikaciju
                     SendResponse(context.Response, newEntry.Response);
@@ -219,7 +226,7 @@ namespace PrviProjekat {
                 //  - korisnik ponisti svoji zahtev
                 //  - server se nasilno zaustavi
                 //  - greske ili visoko opterecenje na strani OpenLibrary-a
-                if (requestRight && !OLCommunicatoinProtocolComplete) {
+                if (requestRight && !OLCommunicationProtocolComplete) {
                     Logger.Error("Left early in communication with OpenLibrary's API");
                     lock (_lock) {
                         if (requestsToOLAPI.TryGetValue(translator.CanonicalSource, out OLRequest myRequest)) {
@@ -243,11 +250,11 @@ namespace PrviProjekat {
                 Logger.EchoLog(Logger.Event.Time, $"Finished processing in {threadTime.ElapsedMilliseconds * .001}s");
             }
         }
-        private void SendResponse(HttpListenerResponse httpResponse, ResponeseData responese, int statusCode = 200)
-            => SendResponse(httpResponse, responese.Body, responese.ContentType, statusCode);
+        private void SendResponse(HttpListenerResponse httpResponse, ResponseData responese)
+            => SendResponse(httpResponse, responese.Body, responese.ContentType, responese.StatusCode);
 
         private void SendResponse(HttpListenerResponse httpResponse, string textResponse, int statusCode = 200)
-            => SendResponse(httpResponse, new ResponeseData(textResponse), statusCode);
+            => SendResponse(httpResponse, new ResponseData(textResponse, statusCode));
 
         private void SendResponse(HttpListenerResponse httpResponse, byte[] body, string contentType, int statusCode = 200) {
             httpResponse.StatusCode = statusCode;
@@ -282,7 +289,7 @@ namespace PrviProjekat {
         }
 
         private readonly string serverPath;
-        private object _lock = new();
+        private readonly object _lock = new();
         private Thread listener;
         private LRUCache cache;
         private HttpClient olClient = new();

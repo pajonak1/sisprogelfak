@@ -18,7 +18,7 @@ namespace PrviProjekat {
         public int Fetcher { get; set; }
         public bool FetcherAborted { get; set; }
         public object Lock { get; }
-        public ResponeseData Response { get; set; }
+        public ResponseData Response { get; set; }
 
         public void Subscribe()
             => SubscriberCount++;

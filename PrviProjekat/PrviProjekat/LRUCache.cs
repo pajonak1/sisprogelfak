@@ -18,7 +18,7 @@ namespace PrviProjekat {
             Replacement
         }
 
-        public ResponeseData this[string request] {
+        public ResponseData this[string request] {
             get => Read(request);
             set => Add(new CacheSlot(request, value));
         }
@@ -28,7 +28,7 @@ namespace PrviProjekat {
         public bool Contains(string request) { 
             if (!cache.TryGetValue(request, out LinkedListNode<CacheSlot> node))
                 return false;
-            if (UsesQuaziTTL && (DateTime.Now - node.Value.CreationDate).Minutes >= TTLMinutes) {
+            if (UsesQuaziTTL && (DateTime.Now - node.Value.CreationDate).TotalMinutes >= TTLMinutes) {
                 Remove(node);
                 return false;
             }
@@ -47,7 +47,7 @@ namespace PrviProjekat {
             ReplaceInsert(value.Requestee, value);
             return InsertionMethod.Replacement;
         }
-        public ResponeseData Read(string request) {
+        public ResponseData Read(string request) {
             LinkedListNode<CacheSlot> slot = cache[request];
             lruChain.Remove(slot);
             lruChain.AddFirst(slot);
