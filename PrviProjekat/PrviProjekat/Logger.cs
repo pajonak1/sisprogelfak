@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace PrviProjekat {
     public static class Logger {
         public enum Event {
+            Time,
             Error,
             Notify,
             Request,
@@ -17,14 +18,36 @@ namespace PrviProjekat {
             Response,
         }
 
+        public static void RawConsoleLine(string line) {
+            lock (_lock) {
+                RawConsoleLine(line, ConsoleColor.White);
+            }
+        }
         public static void EchoLog(Event logT, string message) {
             string formatted = Format(logT, message);
-            if (LogPreformatted(formatted))
-                Console.WriteLine(formatted);
+            lock (_lock) {
+                if (LogPreformatted(formatted))
+                    RawConsoleLine(formatted, colorCoding[logT]);
+            }
         }
         public static void Log(Event logT, string message) 
             => LogPreformatted(Format(logT, message));
+
+        public static void EchoLog(HttpListenerRequest request, string additionalInformation = "")
+            => EchoLog(Event.Request, FormatRequest(request, additionalInformation));
         
+        public static void Log(HttpListenerRequest request, string additionalInformation = "") 
+            => Log(Event.Request, FormatRequest(request, additionalInformation));
+
+        public static void Error(string message)
+            => EchoLog(Event.Error, message);
+
+        private static void RawConsoleLine(string line, ConsoleColor color) {
+            ConsoleColor old = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+            Console.WriteLine(line);
+            Console.ForegroundColor = old;
+        }
         private static bool LogPreformatted(string formatted) {
             lock (_lock) {
                 try {
@@ -39,16 +62,6 @@ namespace PrviProjekat {
                 }
             }
         }
-        public static void EchoLog(HttpListenerRequest request, string additionalInformation = "")
-            => EchoLog(Event.Request, FormatRequest(request, additionalInformation));
-        
-        public static void Log(HttpListenerRequest request, string additionalInformation = "") 
-            => Log(Event.Request, FormatRequest(request, additionalInformation));
-
-        public static void Error(string message)
-            => EchoLog(Event.Error, message);
-        
-
         private static string Format(Event logT, string message) 
             => $"[{DateTime.Now}] " +
                $"[{logT.ToString()}] " +
@@ -63,5 +76,15 @@ namespace PrviProjekat {
 
         private static readonly object _lock = new();
         private const string path = "ServerLog.txt";
+        private readonly static Dictionary<Event, ConsoleColor> colorCoding = new() {
+            [Event.Time] = ConsoleColor.Yellow,
+            [Event.Error] = ConsoleColor.Red,
+            [Event.Notify] = ConsoleColor.DarkGray,
+            [Event.Request] = ConsoleColor.Gray,
+            [Event.Synchro] = ConsoleColor.Cyan,
+            [Event.Network] = ConsoleColor.Blue,
+            [Event.Critical] = ConsoleColor.DarkRed,
+            [Event.Response] = ConsoleColor.Gray,
+        };
     }
 }

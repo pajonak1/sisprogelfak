@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace PrviProjekat {
     public class LRUCache {
-        public LRUCache(int capacity) {
+        public LRUCache(int capacity, bool useQuaziTTL = false, int ttlMinutes = 60) {
             cache = new Dictionary<string, LinkedListNode<CacheSlot>>(capacity);
+            UsesQuaziTTL = useQuaziTTL;
+            TTLMinutes = useQuaziTTL ? ttlMinutes : -1;
             emptyCount = capacity;
         }
         
@@ -20,9 +22,18 @@ namespace PrviProjekat {
             get => Read(request);
             set => Add(new CacheSlot(request, value));
         }
+        public int TTLMinutes { get; }
+        public bool UsesQuaziTTL { get; }
 
-        public bool Contains(string request)
-            => cache.ContainsKey(request);
+        public bool Contains(string request) { 
+            if (!cache.TryGetValue(request, out LinkedListNode<CacheSlot> node))
+                return false;
+            if (UsesQuaziTTL && (DateTime.Now - node.Value.CreationDate).Minutes >= TTLMinutes) {
+                Remove(node);
+                return false;
+            }
+            return true;
+        }
 
         public InsertionMethod Add(string request, byte[] body, string contentType)
             => Add(new CacheSlot(request, body, contentType));
@@ -43,9 +54,17 @@ namespace PrviProjekat {
             return slot.Value.Response;
         }
 
-        private void ReplaceInsert(string request, CacheSlot response) {
+        private void Remove(LinkedListNode<CacheSlot> node) {
+            cache.Remove(node.Value.Requestee);
+            lruChain.Remove(node);
+            emptyCount++;
+        }
+        private void RemoveLRU() {
             cache.Remove(lruChain.Last.Value.Requestee);
             lruChain.RemoveLast();
+        }
+        private void ReplaceInsert(string request, CacheSlot response) {
+            RemoveLRU();
             SimpleInsert(request, response);
         }
         private void SimpleInsert(string request, CacheSlot response)

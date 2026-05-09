@@ -9,6 +9,7 @@ namespace PrviProjekat {
         public CacheSlot(string requestee, ResponeseData response) {
             Response = response;
             Requestee = requestee;
+            CreationDate = DateTime.Now;
         }
         public CacheSlot(string requestee, byte[] body, string contentType) 
         : this(requestee, new ResponeseData(body, contentType)) {
@@ -17,6 +18,7 @@ namespace PrviProjekat {
         public byte[] Body { get => Response.Body; }
         public string Requestee { get; private set; }
         public string ContentType { get => Response.ContentType; }
+        public DateTime CreationDate { get; }
         public ResponeseData Response { get; private set; }
     }
 }

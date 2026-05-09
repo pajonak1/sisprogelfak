@@ -5,7 +5,7 @@
             if (!server.Start())
                 return;
             
-            Console.WriteLine("Press Enter to stop the server");
+            Logger.RawConsoleLine("Press Enter to stop the server");
             Console.ReadLine();
             server.Stop();
         }
@@ -18,4 +18,4 @@
 /*
     /
     /search?[author, title, year, key][&sort][&lang]
- */
+*/

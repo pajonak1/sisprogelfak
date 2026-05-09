@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel.Design;
+using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -13,7 +14,7 @@ namespace PrviProjekat {
         public OLServer(string serverPath, int cacheSize) {
             this.serverPath = serverPath;
             httpL.Prefixes.Add(serverPath);
-            cache = new LRUCache(cacheSize);
+            cache = new LRUCache(cacheSize, true);
         }
 
         public bool Start() {
@@ -33,7 +34,7 @@ namespace PrviProjekat {
             httpL.Stop();
             httpL.Close();
             listener.Join();
-            Logger.EchoLog(Logger.Event.Notify, "Server was successfully closed");
+            Logger.EchoLog(Logger.Event.Notify, "Server closed");
         }
 
         private void Listen() {
@@ -50,10 +51,12 @@ namespace PrviProjekat {
             Logger.Log(Logger.Event.Notify, "Server is no longer listening");
         }
         private void ProcessRequest(object? request) {
+            Stopwatch threadTime = new();
+            threadTime.Start();
+            
             HttpListenerContext context = (HttpListenerContext) request !;
             Logger.Log(context.Request, "Request started processing");
             
-            // status code dodaj mozda
             bool requestRight = false;
             bool OLCommunicatoinProtocolComplete = false;
             string rawUrl = context.Request.RawUrl !;
@@ -64,11 +67,12 @@ namespace PrviProjekat {
                 string arguments = context.Request.Url!.AbsolutePath.ToLower();
                 
                 if (arguments == "/") {
-                    SendResponse(context.Response, "Search OpenLibrary by sending a query to ./search.");
+                    SendResponse(context.Response, "Search OpenLibrary by sending a query to ./search.\n" +
+                                                   "Request ./syntax for query syntax description.");
                 }
                 else if (arguments == "/syntax") {
                     SendResponse(context.Response, 
-                                "Syntax:" +
+                                "Syntax:\n" +
                                 "  (<authors>|<title>|<subjects>|<publisher>|<key>|<work_year>|<edition_year>)\n" +
                                 "  {&(<authors>|<title>|<subjects>|<publisher>|<key>|<work_year>|<edition_year>)}\n" +
                                 "  [&<fields_sort_lang_variations>]\n" +
@@ -88,7 +92,7 @@ namespace PrviProjekat {
                                 "      key           - the OLAPI key of a title (*)\n" +
                                 "  \n" +
                                 "  *Multi-valued queries on this argument translate to an OR chain\n" +
-                                "  OLAPI - OpenLibrary API");
+                                "  OLAPI - OpenLibrary API\n");
                 }
                 else if (arguments == "/search") {
                     translator.Translate(context.Request.QueryString);
@@ -236,6 +240,7 @@ namespace PrviProjekat {
                         }
                     }
                 }
+                Logger.EchoLog(Logger.Event.Time, $"Finished processing in {threadTime.ElapsedMilliseconds * .001}s");
             }
         }
         private void SendResponse(HttpListenerResponse httpResponse, ResponeseData responese, int statusCode = 200)
