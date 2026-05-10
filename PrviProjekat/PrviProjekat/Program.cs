@@ -1,6 +1,7 @@
 ﻿namespace PrviProjekat {
     class Program {
         static void Main(string[] args) {
+            ThreadPool.SetMinThreads(300, 300);
             OLServer server = new OLServer(serverURL, 1000);
             if (!server.Start())
                 return;

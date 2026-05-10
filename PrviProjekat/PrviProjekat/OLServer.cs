@@ -117,7 +117,7 @@ namespace PrviProjekat {
                             // sve ostale niti koje u medjuvremenu (dok se response ne kesira) zele response za isti upit moraju sacekati "fetcher" nit
                             subscription = requestsToOLAPI[translator.CanonicalSource];
                             subscription.Subscribe();
-                            Logger.Log(Logger.Event.Notify, $"Awaiting on Thread {subscription.Fetcher} to fetch response from OpenLibrary");
+                            Logger.EchoLog(Logger.Event.Synchro, $"Awaiting on Thread {subscription.Fetcher} to fetch response from OpenLibrary");
                         }
                     }
 
@@ -126,11 +126,11 @@ namespace PrviProjekat {
                             // Wait se mora ograditi jer inace moze nastupiti deadlock u veoma specificnoj
                             // situaciji: ukoliko se PulsaAll izvrsi kada se neka nit zaustavi
                             // izmedju ovog i prethodnog lock-a
-                            // while treba jer navodno OS moze sporadicno da probudi niti koje se blokiraju na wait
+                            // while treba jer OS moze sporadicno da probudi niti koje se suspenduju na wait
                             while (subscription.Response == null && subscription.FetcherAborted == false) {
-                                Logger.Log(Logger.Event.Synchro, $"Blocking");
+                                Logger.Log(Logger.Event.Synchro, "Blocking");
                                 Monitor.Wait(subscription.Lock);
-                                Logger.Log(Logger.Event.Synchro, $"Woke up");
+                                Logger.Log(Logger.Event.Synchro, "Woke up");
                             }
                             if (subscription.Response != null) {
                                 // ne cita se iz cache-a jer teoretski dok nit dobije pravo pristupa, ako je server veoma opterecen

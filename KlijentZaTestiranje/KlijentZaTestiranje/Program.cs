@@ -1,0 +1,115 @@
+﻿using System;
+using System.ComponentModel;
+using System.Net.Http;
+using System.Threading.Tasks;
+
+namespace tester {
+    class Program {
+        private class CaseComponent {
+            public CaseComponent(string query, int repetitions = 1) {
+                Query = query;
+                Repetitions = repetitions;
+            }
+
+            public int Repetitions { get; }
+            public string Query { get; }
+            public string RequestUrl { get => queryUrl + Query; }
+        };
+
+        private static void Main() {
+            Console.WriteLine("Program za testiranje");
+            Console.WriteLine("Test se pokrece unosom koda sekvence upita koji se salje");
+            Console.WriteLine("Proces se prekida unosom Enter tastera bez unosa koda");
+            Console.WriteLine("Legenda:");
+            Console.WriteLine("\"1\" - Slanje jednog zahteva");
+            Console.WriteLine("\"2\" - Slanje vise razlicitih zahteva");
+            Console.WriteLine("\"3\" - Testiranje stampeda i kanonickog uredjivanja");
+            Console.WriteLine("\"4\" - Slucaj kada nema knjiga");
+            while (true) {
+                List<Thread> requestThreads = new();
+                string input = Console.ReadLine() !;
+                if (input == "") {
+                    break;
+                }
+                if (!testCases.TryGetValue(input, out CaseComponent[] sequence)) {
+                    Console.WriteLine($"Nevazeci kod slucaja: \"{input}\"");
+                    continue;
+                }
+                foreach (CaseComponent component in sequence) {
+                    for (int i = 0; i < component.Repetitions; i++) {
+                        requestThreads.Add(new Thread(() => Send(component.RequestUrl)));
+                    }
+                }
+                badCount = 0;
+                goodCount = 0;
+                sentCount = requestThreads.Count;
+                foreach (Thread thread in requestThreads) {
+                    thread.Start();
+                }
+                foreach (Thread thread in requestThreads) {
+                    thread.Join();
+                }
+                Console.WriteLine($"Broj uspesnih zahteva: {goodCount}/{sentCount}");
+                Console.WriteLine($"Broj neuspelih zahteva: {badCount}/{sentCount}");
+                Console.WriteLine($"----------------------------------------------");
+            }
+        }
+
+        private static void Send(string url) {
+            try {
+                HttpResponseMessage message = client.GetAsync(url).Result;
+                lock (_lock) {
+                    Console.WriteLine($"[{++goodCount}/{sentCount}] Server responded with {message.StatusCode} ({url})");
+                }
+            }
+            catch (Exception e) {
+                lock (_lock) {
+                    badCount++;
+                    Console.WriteLine($"Thread {Thread.CurrentThread.ManagedThreadId} threw exception: {e.Message}");
+                }
+            }
+        }
+
+        private static int badCount = 0;
+        private static int goodCount = 0;
+        private static int sentCount = 0;
+        private static readonly object _lock = new();
+        private static HttpClient client = new();
+        private const string queryUrl = "http://localhost:8080/search?";
+        private static readonly Dictionary<string, CaseComponent[]> testCases = new() {
+            // Jedan zahtev
+            ["1"] = [
+                new CaseComponent("authors=tolkien")
+            ],
+            // Vise razlicitih zahteva
+            ["2"] = [
+                new CaseComponent("title=neuromancer"),
+                new CaseComponent("title=harry potter"),
+                new CaseComponent("authors=george martin"),
+                new CaseComponent("subjects=fantasy"),
+                new CaseComponent("title=dune"),
+                new CaseComponent("authors=tanenbaum"),
+                new CaseComponent("title=Hobbit&authors=tolkien"),
+                new CaseComponent("authors=tolkien&title=hobbit&fields=*&sort=new&lang=en"),
+                new CaseComponent("authors=a"),
+                new CaseComponent("publisher=penguin&sort=old"),
+                new CaseComponent("subjects=fantasy&work_year=[2000 TO 2010]"),
+                new CaseComponent("title=crime and punishment"),
+                new CaseComponent("authors=dostoyevsky"),
+                new CaseComponent("authors=tolkien, Ian Brodie&title=hobbit"),
+                new CaseComponent("authors=tolkien&authors=Ian Brodie&title=hobbit"),
+                new CaseComponent("subjects=fantasy,education&fields=author_name,title,subject"),
+                new CaseComponent("subjects=fantasy&subjects=education&fields=author_name,title,subject"),
+            ],
+            // Stampedo (i kanonicko uredjivanje)
+            ["3"] = [
+                new CaseComponent("authors=asimov&sort=new", 10),
+                new CaseComponent("sort=new&authors=asimov", 10),
+            ],
+            // Nema knjiga
+            ["4"] = [
+                new CaseComponent("authors=fgsefgidsfgsdfgi"),
+            ],
+        };
+    }
+}
