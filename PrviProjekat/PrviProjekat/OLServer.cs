@@ -251,8 +251,8 @@ namespace PrviProjekat {
                 Logger.EchoLog(Logger.Event.Time, $"Finished processing in {threadTime.ElapsedMilliseconds * .001}s");
             }
         }
-        private void SendResponse(HttpListenerResponse httpResponse, ResponseData responese)
-            => SendResponse(httpResponse, responese.Body, responese.ContentType, responese.StatusCode);
+        private void SendResponse(HttpListenerResponse httpResponse, ResponseData response)
+            => SendResponse(httpResponse, response.Body, response.ContentType, response.StatusCode);
 
         private void SendResponse(HttpListenerResponse httpResponse, string textResponse, int statusCode = 200)
             => SendResponse(httpResponse, new ResponseData(textResponse, statusCode));

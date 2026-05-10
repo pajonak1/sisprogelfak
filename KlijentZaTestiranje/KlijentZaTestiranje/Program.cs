@@ -1,7 +1,7 @@
 ﻿using System;
-using System.ComponentModel;
+using System.Collections.Generic;
 using System.Net.Http;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace tester {
     class Program {
@@ -35,13 +35,28 @@ namespace tester {
                     Console.WriteLine($"Nevazeci kod slucaja: \"{input}\"");
                     continue;
                 }
-                foreach (CaseComponent component in sequence) {
-                    for (int i = 0; i < component.Repetitions; i++) {
-                        requestThreads.Add(new Thread(() => Send(component.RequestUrl)));
-                    }
-                }
+
                 badCount = 0;
                 goodCount = 0;
+                bool isStampede = (input == "3");
+                Barrier? stampedeBarrier = null;
+
+                if (isStampede)
+                {
+                    int totalParticipants = 0;
+                    foreach (CaseComponent comp in sequence) {
+                        totalParticipants += comp.Repetitions;
+                    }
+
+                    stampedeBarrier = new Barrier(totalParticipants);
+                }
+
+                foreach (CaseComponent component in sequence) {
+                    for (int i = 0; i < component.Repetitions; i++) {
+                        requestThreads.Add(new Thread(() => Send(component.RequestUrl, stampedeBarrier)));
+                    }
+                }
+               
                 sentCount = requestThreads.Count;
                 foreach (Thread thread in requestThreads) {
                     thread.Start();
@@ -49,13 +64,20 @@ namespace tester {
                 foreach (Thread thread in requestThreads) {
                     thread.Join();
                 }
+
+                stampedeBarrier?.Dispose();
+
                 Console.WriteLine($"Broj uspesnih zahteva: {goodCount}/{sentCount}");
                 Console.WriteLine($"Broj neuspelih zahteva: {badCount}/{sentCount}");
                 Console.WriteLine($"----------------------------------------------");
             }
         }
 
-        private static void Send(string url) {
+        private static void Send(string url, Barrier? stampedeBarrier) {
+            if (stampedeBarrier != null) {
+                stampedeBarrier.SignalAndWait();
+            }
+
             try {
                 HttpResponseMessage message = client.GetAsync(url).Result;
                 lock (_lock) {
@@ -74,7 +96,7 @@ namespace tester {
         private static int goodCount = 0;
         private static int sentCount = 0;
         private static readonly object _lock = new();
-        private static HttpClient client = new();
+        private static readonly HttpClient client = new();
         private const string queryUrl = "http://localhost:8080/search?";
         private static readonly Dictionary<string, CaseComponent[]> testCases = new() {
             // Jedan zahtev
