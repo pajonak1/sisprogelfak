@@ -147,6 +147,7 @@ namespace PrviProjekat {
                             else {
                                 Logger.EchoLog(Logger.Event.Notify, "API caller failed, obtained request privilege");
                                 requestRight = true;
+                                subscription.FetcherAborted = false;
                                 subscription.Unsubscribe();
                             }//*/
                             // 2) da sve niti obustave zahtev
